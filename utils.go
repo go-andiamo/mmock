@@ -11,6 +11,10 @@ func As[T any](args mock.Arguments, index int) T {
 	return rn
 }
 
+func As1[T1 any](args mock.Arguments) T1 {
+	return As[T1](args, 0)
+}
+
 func As2[T1 any, T2 any](args mock.Arguments) (T1, T2) {
 	return As[T1](args, 0), As[T2](args, 1)
 }

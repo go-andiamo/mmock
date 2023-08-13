@@ -3,7 +3,6 @@ package mmock
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"reflect"
 	"runtime"
@@ -82,6 +81,9 @@ type MockMethods struct {
 	MockOf any
 }
 
+// OnAllMethods setups expected calls on every method of the mock
+//
+// Use the errs arg to specify that methods that return an error should return an error when called
 func (mm *MockMethods) OnAllMethods(errs bool) {
 	if mm.MockOf == nil {
 		panic("cannot mock all methods")
@@ -95,6 +97,61 @@ func (mm *MockMethods) OnAllMethods(errs bool) {
 			mm.OnMethod(method.Name, ins...).Return(outs...)
 		}
 	}
+}
+
+// OnMethod is the same as Mock.On() (https://pkg.go.dev/github.com/stretchr/testify/mock#Call.On)
+//
+// Except the method can be specified by func pointer or name
+//
+//go:noinline
+func (mm *MockMethods) OnMethod(method any, arguments ...any) *mock.Call {
+	methodName, argCount := mm.getMethodNameAndNumArgs(method)
+	for i := argCount - len(arguments); i > 0; i-- {
+		arguments = append(arguments, mock.Anything)
+	}
+	return mm.Mock.On(methodName, arguments...)
+}
+
+// AssertNumberOfMethodCalls is the same as Mock.AssertNumberOfCalls() (https://pkg.go.dev/github.com/stretchr/testify/mock#Mock.AssertNumberOfCalls)
+//
+// Except the method can be specified by func pointer or name
+//
+//go:noinline
+func (mm *MockMethods) AssertNumberOfMethodCalls(t *testing.T, method any, expectedCalls int) bool {
+	methodName, _ := mm.getMethodNameAndNumArgs(method)
+	return mm.Mock.AssertNumberOfCalls(t, methodName, expectedCalls)
+}
+
+// AssertMethodCalled is the same as Mock.AssertCalled() (https://pkg.go.dev/github.com/stretchr/testify/mock#Mock.AssertCalled)
+//
+// # Except the method can be specified by func pointer or name
+//
+// Also, if the number of arguments specified is less than the expected args of the method then
+// the arguments is padded with mock.Anything
+//
+//go:noinline
+func (mm *MockMethods) AssertMethodCalled(t *testing.T, method any, arguments ...any) bool {
+	methodName, ins := mm.getMethodNameAndNumArgs(method)
+	for i := ins - len(arguments); i > 0; i-- {
+		arguments = append(arguments, mock.Anything)
+	}
+	return mm.Mock.AssertCalled(t, methodName, arguments...)
+}
+
+// AssertMethodNotCalled is the same as Mock.AssertNotCalled() (https://pkg.go.dev/github.com/stretchr/testify/mock#Mock.AssertNotCalled)
+//
+// # Except the method can be specified by func pointer or name
+//
+// Also, if the number of arguments specified is less than the expected args of the method then
+// the arguments is padded with mock.Anything
+//
+//go:noinline
+func (mm *MockMethods) AssertMethodNotCalled(t *testing.T, method any, arguments ...any) bool {
+	methodName, ins := mm.getMethodNameAndNumArgs(method)
+	for i := ins - len(arguments); i > 0; i-- {
+		arguments = append(arguments, mock.Anything)
+	}
+	return mm.Mock.AssertNotCalled(t, methodName, arguments...)
 }
 
 func methodInsAndOuts(method reflect.Method, errs bool) (ins []any, outs []any) {
@@ -131,63 +188,6 @@ func excludeMethods() map[string]bool {
 		result[to.Method(i).Name] = true
 	}
 	return result
-}
-
-func (mm *MockMethods) ClearAll() {
-	mm.ClearCalls()
-	mm.ClearExpectedCalls()
-}
-
-func (mm *MockMethods) ClearExpectedCalls() {
-	mm.Mock.ExpectedCalls = nil
-}
-
-func (mm *MockMethods) ClearCalls() {
-	mm.Mock.Calls = nil
-}
-
-func (mm *MockMethods) OnMethod(method any, arguments ...any) *mock.Call {
-	methodName, argCount := mm.getMethodNameAndNumArgs(method)
-	for i := argCount - len(arguments); i > 0; i-- {
-		arguments = append(arguments, mock.Anything)
-	}
-	return mm.Mock.On(methodName, arguments...)
-}
-
-func (mm *MockMethods) AssertNumberOfMethodCalls(t *testing.T, method any, expectedCalls int) bool {
-	methodName, _ := mm.getMethodNameAndNumArgs(method)
-	return mm.Mock.AssertNumberOfCalls(t, methodName, expectedCalls)
-}
-
-func (mm *MockMethods) AssertNumberOfMethodCallsIs(t *testing.T, method any, check func(calls int) bool) bool {
-	methodName, _ := mm.getMethodNameAndNumArgs(method)
-	return assert.True(t, check(mm.numberOfCalls(methodName)))
-}
-
-func (mm *MockMethods) numberOfCalls(methodName string) int {
-	count := 0
-	for _, c := range mm.Mock.Calls {
-		if c.Method == methodName {
-			count++
-		}
-	}
-	return count
-}
-
-func (mm *MockMethods) AssertMethodCalled(t *testing.T, method any, arguments ...any) bool {
-	methodName, ins := mm.getMethodNameAndNumArgs(method)
-	if len(arguments) == 0 && ins > 0 {
-		return assert.True(t, mm.numberOfCalls(methodName) > 0, "expected method '%s' to have been called", methodName)
-	}
-	return mm.Mock.AssertCalled(t, methodName, arguments...)
-}
-
-func (mm *MockMethods) AssertMethodNotCalled(t *testing.T, method any, arguments ...any) bool {
-	methodName, ins := mm.getMethodNameAndNumArgs(method)
-	if len(arguments) == 0 && ins > 0 {
-		return assert.True(t, mm.numberOfCalls(methodName) == 0, "expected method '%s' not to have been called", methodName)
-	}
-	return mm.Mock.AssertNotCalled(t, methodName, arguments...)
 }
 
 func (mm *MockMethods) getMethodNameAndNumArgs(method any) (string, int) {

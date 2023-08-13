@@ -16,9 +16,6 @@ func TestMockedMethods(t *testing.T) {
 	assert.Equal(t, "a", r.SomeValue)
 	mocked.AssertMethodCalled(t, mocked.DoSomething)
 	mocked.AssertNumberOfMethodCalls(t, mocked.DoSomething, 1)
-	mocked.AssertNumberOfMethodCallsIs(t, mocked.DoSomething, func(calls int) bool {
-		return calls == 1
-	})
 	mocked.AssertMethodNotCalled(t, mocked.DoSomethingElse)
 
 	mocked.OnMethod(mocked.DoSomethingElse).Return(SomeStruct{SomeValue: "a"}, nil)
@@ -27,14 +24,6 @@ func TestMockedMethods(t *testing.T) {
 	assert.Equal(t, "a", r2.SomeValue)
 	mocked.AssertMethodCalled(t, mocked.DoSomethingElse)
 	mocked.AssertNumberOfMethodCalls(t, mocked.DoSomethingElse, 1)
-
-	mocked.ClearCalls()
-	mocked.AssertMethodNotCalled(t, mocked.DoSomethingElse)
-
-	mocked.ClearAll()
-	assert.Panics(t, func() {
-		_, _ = mocked.DoSomethingElse("y", 2)
-	})
 }
 
 func TestMockedMethods_PanicsOnUnknownMethod(t *testing.T) {
