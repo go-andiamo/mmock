@@ -28,7 +28,7 @@ func TestMockedMethods(t *testing.T) {
 
 func TestMockedMethods_PanicsOnUnknownMethod(t *testing.T) {
 	mocked := new(mockedMy)
-	mocked.MockOf = &mockedMy{}
+	mocked.mockOf = &mockedMy{}
 
 	oth := &anotherMock{}
 	assert.Panics(t, func() {
@@ -57,7 +57,7 @@ func TestMockedMethods_ByNameString(t *testing.T) {
 
 	// now with method name string but without having to specify args...
 	mocked = new(mockedMy)
-	mocked.MockOf = &mockedMy{}
+	mocked.mockOf = &mockedMy{}
 	mocked.OnMethod("DoSomething").Return(&SomeStruct{SomeValue: "a"}, nil)
 
 	r, err = mocked.DoSomething("x", 1)
@@ -93,7 +93,7 @@ func TestMockedMethods_Panics(t *testing.T) {
 
 func TestMockedMethods_OnAllMethods(t *testing.T) {
 	mocked := new(mockedMy)
-	mocked.MockOf = &mockedMy{}
+	mocked.mockOf = &mockedMy{}
 
 	mocked.OnAllMethods(false)
 	r, err := mocked.DoSomething("a", 1)
@@ -106,7 +106,7 @@ func TestMockedMethods_OnAllMethods(t *testing.T) {
 
 	// all errors...
 	mocked = new(mockedMy)
-	mocked.MockOf = &mockedMy{}
+	mocked.mockOf = &mockedMy{}
 	mocked.OnAllMethods(true)
 	_, err = mocked.DoSomething("a", 1)
 	assert.Error(t, err)
@@ -147,14 +147,25 @@ func TestNewMockOf(t *testing.T) {
 	assert.Nil(t, r)
 	assert.Error(t, err)
 	m.AssertMethodCalled(t, m.DoSomething)
+}
 
+func TestNewMockOf__PanicsWithBadMockImpl(t *testing.T) {
 	type otherMockedImpl struct {
 		MockMethods
 	}
 	assert.Panics(t, func() {
 		// panics because OtherMockedImpl does not implement my
-		NewMockOf[otherMockedImpl, my]()
+		_ = NewMockOf[otherMockedImpl, my]()
 	})
+}
+
+func TestParseMethodName(t *testing.T) {
+	mn := parseMethodName("github.com/go-andiamo/mmock.(*mockedMy).DoSomething-fm")
+	assert.Equal(t, "DoSomething", mn)
+	mn = parseMethodName("github.com/go-andiamo/mmock.(*mockedMy).DoSomething")
+	assert.Equal(t, "DoSomething", mn)
+	mn = parseMethodName("github_com_go_andiamo_mmock.DoSomething.pN01_github_com_go_andiamo_mmock.mockedMy")
+	assert.Equal(t, "DoSomething", mn)
 }
 
 type SomeStruct struct {

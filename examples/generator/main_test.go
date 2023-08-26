@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/go-andiamo/mmock"
-	"github.com/go-andiamo/mmock/examples/example2/stuff"
+	"github.com/go-andiamo/mmock/examples/generator/stuff"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
