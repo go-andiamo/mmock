@@ -112,6 +112,12 @@ Things to notice:
 * use `.OnAllMethods()` to mock all methods (optionally making all return an error)
 * use `mmock.As()` generic function in your mocked methods to return correct types
 
+## Spy Mocks
+Mmock also provides for 'spy mocks' - where an actual underlying implementation is supplied to the mock.
+If methods on the mock are called but have not been mocked (using `.On()` or `.OnMethod()`) then the underlying method is called - but you can still assert that method was called.   
+
+See [example](https://github.com/go-andiamo/mmock/tree/main/examples/spy)
+
 ## Mock generator
 Mmock comes with a programmatic mock generator, e.g.
 ```go
